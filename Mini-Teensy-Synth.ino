@@ -24,7 +24,9 @@ const char* PROJECT_SUBTITLE = "6-Voice Poly";
 #ifdef USE_MIDI_HOST
 USBHost myusb;
 USBHub hub1(myusb);
-MIDIDevice midi1(myusb);
+// BigBuffer accepts 512-byte high-speed packets. A Teensy step sequencer
+// uses those; a normal USB keyboard uses 64-byte packets and either class works.
+MIDIDevice_BigBuffer midi1(myusb);
 #endif
 
 #ifdef USE_DIN_MIDI
@@ -101,9 +103,26 @@ AudioMixer4              voiceMix1, voiceMix2, finalMix; // Mix voices together
 AudioOutputUSB           usb1;            // USB audio output (stereo)
 #endif
 
+#if defined(USE_PCM5102)
+// Do not call AudioOutputI2S::begin() from this constructor. The normal
+// object starts the I2S hardware during static initialization, before
+// AudioMemory() and while pin 23 is still the Filter Decay encoder.
+class Pcm5102Output : public AudioOutputI2S {
+public:
+  Pcm5102Output() : AudioOutputI2S(0) {}
+  void start() { begin(); }
+};
+Pcm5102Output        i2s1;
+
+void pcm5102Enc15Isr() {
+  Encoder::update(Encoder::interruptArgs[ENC_15_CLK]);
+}
+#elif defined(USE_TEENSY_DAC)
+AudioOutputI2S           i2s1;
+#endif
+
 #ifdef USE_TEENSY_DAC
-AudioOutputI2S           i2s1;            // I2S DAC output (Teensy Audio Shield)
-AudioControlSGTL5000     sgtl5000_1;
+AudioControlSGTL5000     sgtl5000_1;      // Audio Shield codec only
 #endif
 
 // Audio connections - Polyphonic chain
@@ -188,7 +207,12 @@ AudioConnection patchCordOut1(finalMix, 0, usb1, 0); // Left channel
 AudioConnection patchCordOut2(finalMix, 0, usb1, 1); // Right channel
 #endif
 
-#ifdef USE_TEENSY_DAC
+#ifdef USE_PCM5102
+AudioAmplifier           pcm5102Level;
+AudioConnection patchCordPcmIn(finalMix, 0, pcm5102Level, 0);
+AudioConnection patchCordOut3(pcm5102Level, 0, i2s1, 0); // Left channel
+AudioConnection patchCordOut4(pcm5102Level, 0, i2s1, 1); // Right channel
+#elif defined(USE_TEENSY_DAC)
 AudioConnection patchCordOut3(finalMix, 0, i2s1, 0); // Left channel
 AudioConnection patchCordOut4(finalMix, 0, i2s1, 1); // Right channel
 #endif
@@ -644,8 +668,29 @@ void updateParameterDisplay(int paramIndex, float val) {
 
 void setup() {
   Serial.begin(115200);
+
+#ifdef USE_PCM5102
+  // Start I2S before AudioMemory so the module's clock drives the synth.
+  // A separate software timer was feeding samples at a slightly different
+  // rate, which garbled polyphonic audio on the DAC. Pin 23 stays the
+  // Filter Decay encoder; the PCM5102A does not use that master clock.
+  pcm5102Level.gain(PCM5102_LINE_GAIN);
+  noInterrupts();
+  NVIC_DISABLE_IRQ(IRQ_GPIO6789);
+  detachInterrupt(ENC_15_CLK);
+  i2s1.start();
+  pinMode(ENC_15_CLK, INPUT_PULLUP);
+  NVIC_ENABLE_IRQ(IRQ_GPIO6789);
+#endif
+
   AudioMemory(48);
-  
+
+#ifdef USE_PCM5102
+  interrupts();
+  attachInterrupt(ENC_15_CLK, pcm5102Enc15Isr, CHANGE);
+  Serial.println("PCM5102A line out initialized");
+#endif
+
 #ifdef USE_TEENSY_DAC
   sgtl5000_1.enable();
   sgtl5000_1.volume(0.8);
@@ -796,6 +841,9 @@ void setup() {
   
 #ifdef USE_USB_AUDIO
   Serial.println("Audio output: USB Audio");
+#endif
+#ifdef USE_PCM5102
+  Serial.println("Audio output: PCM5102A line out (I2S)");
 #endif
 #ifdef USE_TEENSY_DAC
   Serial.println("Audio output: Teensy Audio Shield (I2S)");

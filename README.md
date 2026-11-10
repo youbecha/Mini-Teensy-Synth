@@ -68,14 +68,14 @@ If using the Teensy's MIDI Host enable `USE_MIDI_HOST` in config.
 ```
                     Teensy 4.1 Pinout Map
     ┌─────┐                                  ┌─────┐
-    │  0  │ enc3 CLK (Osc3 Range)         5V │ VIN │ LCD Power
+    │  0  │ enc3 CLK (Osc3 Range)         5V │ VIN │ LCD and PCM5102A power
     │  1  │ enc3 DT  (Osc3 Range)            │ GND │ All encoders daisy-chained to ground + LCD and Menu
     │  2  │ enc2 CLK (Osc2 Range)            │ 3V  │ Menu Encoder Power
     │  3  │ enc2 DT  (Osc2 Range)            │ 23  │ enc15 CLK (Filter Decay/LFO Depth)
     │  4  │ enc1 CLK (Osc1 Range)            │ 22  │ enc15 DT  (Filter Decay/LFO Depth) 
-    │  5  │ enc1 DT  (Osc1 Range)            │ 21  │ enc11 CLK (Osc3 Volume)
-    │  6  │ enc5 CLK (Osc2 Fine)             │ 20  │ enc11 DT  (Osc3 Volume)
-    │  7  │ enc5 DT  (Osc2 Fine)             │ 19  │ SCL (LCD I2C) LCD Clock
+    │  5  │ enc1 DT  (Osc1 Range)            │ 21  │ PCM5102A BCLK
+    │  6  │ enc5 CLK (Osc2 Fine)             │ 20  │ PCM5102A LRCLK
+    │  7  │ PCM5102A DIN                     │ 19  │ SCL (LCD I2C) LCD Clock
     │  8  │ enc4 CLK (Osc1 Fine)             │ 18  │ SDA (LCD I2C) LCD Data
     │  9  │ enc4 DT  (Osc1 Fine)             │ 17  │ enc18 CLK (Amp Attack)
     │ 10  │ enc8 CLK (Osc3 Wave)             │ 16  │ Menu Encoder SW (Push Button)
@@ -93,9 +93,11 @@ If using the Teensy's MIDI Host enable `USE_MIDI_HOST` in config.
     │ 31  │ enc17 CLK(Noise Volume)          │ 34  │ enc13 CLK (Filter Resonance)
     │ 32  │ enc17 DT (Noise Volume)          │ 33  │ enc13 DT  (Filter Resonance)
     └─────┘                                  │     │
+                                             │ 49  │ enc5 DT   (Osc2 Fine)              (Under the Teensy)
                                              │ 50  │ enc14 CLK (Filter Attack/LFO Rate) (Under the Teensy)
                                              │ 51  │ enc18 DT  (Amp Attack)             (Under the Teensy)
-                                             │ 52  │
+                                             │ 52  │ enc11 DT  (Osc3 Volume)            (Under the Teensy)
+                                             │ 53  │ enc11 CLK (Osc3 Volume)            (Under the Teensy)
                                              └─────┘
 ```
 
@@ -138,13 +140,13 @@ Osc1 Range          │  enc1   │    4    │    5    │ Footages: 32', 16', 
 Osc2 Range          │  enc2   │    2    │    3    │ Footages: 32', 16', 8', 4', 2'  
 Osc3 Range          │  enc3   │    0    │    1    │ Footages: 32', 16', 8', 4', 2'
 Osc1 Fine Tune      │  enc4   │    8    │    9    │ ±7 semitone detune
-Osc2 Fine Tune      │  enc5   │    6    │    7    │ ±7 semitone detune
+Osc2 Fine Tune      │  enc5   │    6    │   49    │ ±7 semitone detune
 Osc1 Waveform       │  enc6   │   25    │   27    │ Triangle, Sawtooth, Square, Pulse, etc.
 Osc2 Waveform       │  enc7   │   12    │   24    │ Triangle, Sawtooth, Square, Pulse, etc.
 Osc3 Waveform       │  enc8   │   10    │   11    │ Triangle, Sawtooth, Square, Pulse, etc.
 Osc1 Volume         │  enc9   │   29    │   30    │ Mixer level control
 Osc2 Volume         │ enc10   │   28    │   26    │ Mixer level control  
-Osc3 Volume         │ enc11   │   21    │   20    │ Mixer level control
+Osc3 Volume         │ enc11   │   53    │   52    │ Mixer level control
 Menu Navigation     │ menu    │   14    │   15    │ Main interface (SW→16) / Filter Cutoff when not in menu
 Filter Resonance    │ enc13   │   34    │   33    │ Resonance Q factor
 Filter Envelope Amt │ enc14   │   50    │   41    │ Attack / LFO Rate*
@@ -191,6 +193,26 @@ GND            │  Teensy 4.1    │  All encoder GND, LCD GND
 **Option 1: Computer DAW (Current Setup)**
 - Single USB cable provides audio output + MIDI input
 - Plug-and-play with some DAWs
+- The same mix also goes to the PCM5102A line output. Enable `USE_PCM5102` in `config.h`.
+
+**PCM5102A line output**
+```
+PCM5102A    →  Teensy 4.1
+DIN         →  7
+LRCLK       →  20
+BCLK        →  21
+SCK         →  GND
+GND         →  GND
+VIN         →  VIN (5V)
+```
+The module VIN is 5V. The three I2S wires are 3.3V logic. Either line output carries the mono mix. Solder the rear bridges L, L, H, L so XSMT is high and the data format stays I2S. `PCM5102_LINE_GAIN` is `0.10` so a portable speaker input is not overdriven. Wiring, the host-MIDI buffer, and the related repositories are written up in `NOTES-pcm5102-line-out.md`.
+
+**Related repositories**
+
+- Upstream: https://github.com/NickCulbertson/Mini-Teensy-Synth
+- Step sequencer: https://github.com/youbecha/Teensy-Arduino-Step-Sequencer
+
+A Teensy sequencer plugs into the USB host port. The host object is `MIDIDevice_BigBuffer` so its 512-byte packets are accepted. A USB keyboard still works.
 
 **Option 2: Standalone with MIDI Keyboard**  
 For standalone use without computer:

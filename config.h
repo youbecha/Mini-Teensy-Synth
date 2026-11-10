@@ -33,8 +33,10 @@
 // #define USE_DIN_MIDI // DIN MIDI support - UNTESTED (requires moving enc3 from pin 0)
 
 // • AUDIO TYPE
-// #define USE_TEENSY_DAC        // Use Teensy Audio Shield or other I2S DAC
-#define USE_USB_AUDIO      // Use USB Audio output (default)
+// #define USE_TEENSY_DAC        // Teensy Audio Shield (SGTL5000). Needs I2C and MCLK on pin 23.
+#define USE_PCM5102           // PCM5102A line out on I2S pins 7, 20, 21. No I2C, no MCLK.
+#define PCM5102_LINE_GAIN 0.10f // Module only. Full scale is about 2.1 V; 0.10 stays clean into a portable speaker.
+#define USE_USB_AUDIO         // USB Audio output (default)
 
 // ============================================================================
 // Hardware Configuration - Multi-Teensy Standard Layout
@@ -58,7 +60,7 @@
 #define ENC_4_CLK    8      // enc4 pins
 #define ENC_4_DT     9
 #define ENC_5_CLK    6      // enc5 pins
-#define ENC_5_DT     7
+#define ENC_5_DT     49     // moved off pin 7 for PCM5102A DIN
 #define ENC_6_CLK    25     // enc6 pins
 #define ENC_6_DT     27
 #define ENC_7_CLK    12     // enc7 pins
@@ -69,8 +71,8 @@
 #define ENC_9_DT     30
 #define ENC_10_CLK   28     // enc10 pins
 #define ENC_10_DT    26
-#define ENC_11_CLK   21     // enc11 pins
-#define ENC_11_DT    20
+#define ENC_11_CLK   53     // moved off pin 21 for PCM5102A BCLK
+#define ENC_11_DT    52     // moved off pin 20 for PCM5102A LRCLK
 //Encoder 12 is the menu encoder
 #define ENC_13_CLK   34     // enc13 pins
 #define ENC_13_DT    33
