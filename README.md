@@ -1,4 +1,4 @@
-# MiniTeensy Synth
+# MiniTeensy Synth (forked for i2s mods)
 
 A **6-voice polyphonic virtual analog synthesizer** built with the Teensy 4.1 microcontroller, inspired by the classic **Minimoog**. Features comprehensive synthesis with USB audio/MIDI and intuitive menu control.
 
@@ -26,6 +26,23 @@ Video: [**DIY Minimoog Inspired Synth | A Teensy Powered Tribute**](https://yout
 ### v1.1 - December 2025
 - **Added MIDI Host Support**
 - **Added MIDICC Support**
+
+### v? - November 2026 fork info
+The original synth project by Nick Culbertson works great out of the box! Use that one, unless...
+
+I was using a Teensy based step sequencer, so I had to modify the code for the Teensy Synth to receive it through the host USB plug...regular usb synth keyboard works fine from what I have tested.
+
+Mostly this fork is to document adding a PCM5102A i2s audio output and the corresponding wiring and code change.   Some problems involved needing to wait to intialize the PCM5102A until after the LCD was initialized, additionally the portable powered speaker I was using could not handle the normal output from the PCM5102A so I had to have a setting added to be able to lower that output.
+
+The only changes to this readme and the code involve those items.  If you are not adding the i2s audio, then use the original, and not this forked one...the wiring is different on my version and it might get confusing, because this readme is an edit of the original, and there might be some conflicting info...I can say that the first Teensy 4.1 Pinout Map and image match my project and this code...there might be conflicting info below that...over time I will try to fix it...but for now this is it.
+
+It was done via the Cursor AI system (Grok is the input, Cursor does the heavy lifting).
+
+<img width="1465" height="1635" alt="miniteensymoogwiring-i2s" src="https://github.com/user-attachments/assets/8c06e4d2-f30b-4cb0-8e4f-0f0904d47bee" />
+
+(I was told to use 5v for Vin on the PCM5102A, because it has voltage regulators built in.)
+
+(the rest of the documentation is a mix between the original and my additions...watch out for conflicts)
 
 BREAKING CHANGE
 **Menu encoder pin assignments changed** to fix encoder timing issues:
@@ -63,7 +80,7 @@ If using the Teensy's MIDI Host enable `USE_MIDI_HOST` in config.
 
 ## Detailed Wiring & Pinout
 
-### **Teensy 4.1 Complete Pinout Assignment**
+### **Teensy 4.1 Complete Pinout Assignment** for i2s audio version only
 
 ```
                     Teensy 4.1 Pinout Map
@@ -100,6 +117,7 @@ If using the Teensy's MIDI Host enable `USE_MIDI_HOST` in config.
                                              │ 53  │ enc11 CLK (Osc3 Volume)            (Under the Teensy)
                                              └─────┘
 ```
+
 
 ### **Minimal Build (LCD + 1 Encoder)**
 Perfect for testing or easier builds:
@@ -282,4 +300,10 @@ Fork, test on hardware, submit PR. Open source project!
 - **Open source community**
 
 ---
-*This project was developed with assistance from [Claude Code](https://code.claude.com/docs/en/overview).*
+*This project was developed with assistance from [Claude Code](https://code.claude.com/docs/en/overview)... and modified for i2s with help from [Cursor](https://cursor.com/) *
+
+Your reward for reading till the end...
+
+<img width="761" height="552" alt="teensymidipanelcanvasv7cropshrunk" src="https://github.com/user-attachments/assets/c0d2492c-681b-475d-ade0-1f95955d2153" />
+
+
